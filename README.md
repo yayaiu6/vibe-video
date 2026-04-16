@@ -8,12 +8,12 @@ Ask for a video and Vibe Video gathers what it needs — from the model's own kn
 
 ```
 Vibe Video (Team Leader Coordinates)
-├── Animator    — writes Hyperframes HTML, renders to MP4, iterates on failure
+├── Animator        — writes Hyperframes HTML, renders to MP4, iterates on failure
 ├── CodeExplorer    — clones any git repo on demand, read-only
-└── Researcher  — Parallel web search (optional; set PARALLEL_API_KEY)
+└── Researcher      — Parallel web search (optional; set PARALLEL_API_KEY)
 ```
 
-The team leader is conversational. It routes every substantive request to one of the specialists and synthesizes the result. The Animator owns the full authoring loop: planning scenes, writing HTML + GSAP, linting, rendering, and iterating when the render fails.
+The team leader routes requests to one of the specialists and synthesizes the result. The Animator owns the full authoring loop: planning scenes, writing HTML + GSAP, linting, rendering, and iterating when the render fails.
 
 The product specification is documented in [`docs/SPEC.md`](docs/SPEC.md).
 
@@ -57,26 +57,17 @@ Edit `.env`:
 docker compose up -d --build
 ```
 
-The first build takes a few minutes because it installs Node 22, FFmpeg,
-Chromium, and the `hyperframes` CLI into the image.
+The first build takes a few minutes because it installs Node 22, FFmpeg, Chromium, and the `hyperframes` CLI into the image.
 
 ### 3. Use it
 
-Open the AgentOS web UI at **http://localhost:8000** and start a chat.
-MP4s play inline.
-
-For a terminal experience:
-
-```bash
-docker compose exec vibe-video-api python -m vibe_video
-```
+1. Open the AgentOS web UI at [https://os.agno.com/](https://os.agno.com/)
+2. Add **https://localhost:8000** as an OS.
+3. Chat with the team. MP4s play inline.
 
 ### 4. Rendered videos
 
-Outputs land in `./renders/` at the project root — bind-mounted into
-the container so finished MP4s are immediately accessible on the host.
-Each composition gets its own subdirectory containing the authored HTML
-and the final MP4. The directory is gitignored.
+Outputs land in `./renders/` at the project root — bind-mounted into the container so finished MP4s are immediately accessible on the host. Each composition gets its own subdirectory containing the authored HTML and the final MP4. The directory is gitignored.
 
 ## Local Development
 
@@ -101,9 +92,7 @@ sudo npm install -g hyperframes
 
 ## Architecture at a Glance
 
-See [`docs/SPEC.md`](docs/SPEC.md) for the full specification — team
-structure, agent responsibilities, tool surface, rendering pipeline,
-environment variables, and the v0 non-goals.
+See [`docs/SPEC.md`](docs/SPEC.md) for the full specification — team structure, agent responsibilities, tool surface, rendering pipeline, environment variables, and the v0 non-goals.
 
 Source layout:
 
@@ -120,20 +109,9 @@ vibe_video/
 └── settings.py            # DB, paths, model, retry budget
 ```
 
-## Contributing
-
-Docs live in [`docs/`](docs/). The specification is authoritative — if
-you change behavior, update `docs/SPEC.md` in the same commit.
-
-```bash
-./scripts/format.sh      # ruff format
-./scripts/validate.sh    # ruff check + mypy
-```
-
 ## Evals
 
-A minimal harness runs prompts against the live Docker team and auto-fixes
-prompt regressions with `claude -p` in a loop.
+A minimal harness runs prompts against the live Docker team and auto-fixes prompt regressions with `claude -p` in a loop.
 
 ```bash
 python -m evals run                      # run all cases
