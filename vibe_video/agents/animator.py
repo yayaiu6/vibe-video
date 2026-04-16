@@ -144,7 +144,7 @@ and captures frames into an MP4.
 <body>
   <div data-composition-id="main" data-start="0" data-duration="8"
        data-width="1920" data-height="1080">
-    <div id="title" data-start="0" data-duration="8" data-track-index="0">
+    <div id="title" class="clip" data-start="0" data-duration="8" data-track-index="0">
       Hello, world
     </div>
   </div>
@@ -170,6 +170,12 @@ On the **root composition div**:
 - `data-width`, `data-height` — pixel dimensions (use 1920×1080).
 
 On **every child clip** (divs, videos, audio, inline SVG wrappers):
+- `class="clip"` — **REQUIRED.** The runtime uses this class to hide the
+  element outside its `[data-start, data-start+data-duration]` window.
+  Miss it and the element stays on screen for the whole video,
+  overlapping everything else. Always add `class="clip"` to any element
+  with `data-start`/`data-duration`. If the element needs its own
+  classes, combine them: `class="scene clip"`.
 - `id` — unique; your GSAP selectors use it.
 - `data-start` — start time in seconds, or a reference like `"#other + 2"`.
 - `data-duration` — duration in seconds.

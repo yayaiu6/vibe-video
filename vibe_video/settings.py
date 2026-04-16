@@ -22,7 +22,14 @@ agent_db = get_postgres_db()
 # ---------------------------------------------------------------------------
 # Anthropic Claude Opus 4.7 — strong reasoning, great for multi-step
 # planning and Hyperframes HTML authoring.
-MODEL = Claude(id="claude-opus-4-7")
+#
+# Prompt caching on the system block: leader and Animator each have
+# large, stable system prompts (~6k and ~8k tokens respectively) that
+# get re-read on every tool-call turn. With `cache_system_prompt=True`
+# agno adds `cache_control: ephemeral` to the system block, so every
+# turn after the first in a 5-minute window reads the prompt from
+# Anthropic's cache at ~10% cost and much lower latency.
+MODEL = Claude(id="claude-opus-4-7", cache_system_prompt=True)
 
 # Animator writes whole HTML compositions inside `save_file` tool calls,
 # so its output is several thousand tokens of HTML + CSS + GSAP.
@@ -37,9 +44,15 @@ MODEL = Claude(id="claude-opus-4-7")
 # max_tokens is set high so one `save_file` call can carry a full
 # composition (HTML + inline CSS + GSAP is ~6-10k tokens for a busy
 # animation).
+#
+# cache_system_prompt=True: Animator iterates (lint → patch → lint →
+# render → patch → render), typically 6-10 turns per run. The ~8k-token
+# system prompt (base instructions + inlined Hyperframes skill) gets
+# cached on turn 1 and re-used cheaply for the rest of the run.
 ANIMATOR_MODEL = Claude(
     id="claude-opus-4-7",
     max_tokens=32000,
+    cache_system_prompt=True,
 )
 
 # ---------------------------------------------------------------------------
