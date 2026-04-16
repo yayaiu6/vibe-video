@@ -1,0 +1,6 @@
+chat:
+  quick_prompts:
+    vibe_video:
+      - "Animate Dijkstra's algorithm on a small weighted graph."
+      - "Make a 45-second video explaining quantum entanglement."
+      - "Clone agno-agi/vibe-video and animate how it works."

@@ -1,0 +1,48 @@
+[project]
+name = "vibe-video"
+version = "0.1.0"
+description = "A conversational multi-agent team that renders motion-graphics videos via Hyperframes."
+requires-python = ">=3.12,<4"
+readme = "README.md"
+license-files = ["LICENSE"]
+authors = [{ name = "Agno", email = "hello@agno.com" }]
+
+dependencies = [
+    "agno[os]",
+    "aiohttp",
+    "anthropic",
+    "parallel-web",
+    "pgvector",
+    "psycopg[binary]",
+]
+
+[project.optional-dependencies]
+dev = ["mypy", "ruff"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["vibe_video*", "db*", "app*"]
+
+[tool.ruff]
+line-length = 120
+exclude = [".venv*"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401", "F403"]
+
+[tool.mypy]
+check_untyped_defs = true
+no_implicit_optional = true
+warn_unused_configs = true
+plugins = ["pydantic.mypy"]
+exclude = [".venv*"]
+
+[[tool.mypy.overrides]]
+module = ["agno.*", "httpx.*", "yaml.*"]
+ignore_missing_imports = true
+
+[tool.uv.pip]
+no-annotate = true

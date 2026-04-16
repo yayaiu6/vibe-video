@@ -1,0 +1,78 @@
+services:
+  vibe-video-db:
+    image: agnohq/pgvector:18
+    container_name: vibe-video-db
+    environment:
+      - POSTGRES_USER=${DB_USER:-ai}
+      - POSTGRES_PASSWORD=${DB_PASS:-ai}
+      - POSTGRES_DB=${DB_DATABASE:-ai}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - vibe-video
+
+  vibe-video-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE_NAME:-vibe-video}:${IMAGE_TAG:-latest}
+    container_name: vibe-video-api
+    # --reload-dir limits the hot-reload watcher to the directories whose
+    # Python modules are actually imported by the server. Without this,
+    # uvicorn watches all .py under /app and reloads on every edit under
+    # evals/, docs/, scripts/, etc. — disruptive when evals are running.
+    command: >
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      --reload-dir app --reload-dir vibe_video --reload-dir db
+    ports:
+      - "8000:8000"
+    volumes:
+      # Hot-reload: mount source code
+      - .:/app
+      # Ephemeral scratch for CodeExplorer's on-demand clones
+      - repos:/repos
+      # Render outputs — bind-mounted so MP4s are visible in ./renders locally
+      - ./renders:/renders
+    environment:
+      - RUNTIME_ENV=dev
+      - AGNO_DEBUG=True
+      - AGENTOS_URL=http://127.0.0.1:8000
+      # Database
+      - DB_HOST=vibe-video-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER:-ai}
+      - DB_PASS=${DB_PASS:-ai}
+      - DB_DATABASE=${DB_DATABASE:-ai}
+      - WAIT_FOR_DB=True
+      # API keys
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-}
+      # Web research (optional)
+      - PARALLEL_API_KEY=${PARALLEL_API_KEY:-}
+      # Directories
+      - REPOS_DIR=/repos
+      - RENDERS_DIR=/renders
+      # Animator behavior
+      - MAX_RENDER_RETRIES=${MAX_RENDER_RETRIES:-3}
+      # Hyperframes render: force screenshot capture mode.
+      # The default "beginframe" path calls CDP method
+      # HeadlessExperimental.beginFrame, which Chrome removed from
+      # modern builds (Chromium >=~128). Page.captureScreenshot is
+      # available on every build; the tradeoff is somewhat slower
+      # captures. envBool parser requires the literal string "true".
+      - PRODUCER_FORCE_SCREENSHOT=true
+    depends_on:
+      - vibe-video-db
+    networks:
+      - vibe-video
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  vibe-video:
+
+volumes:
+  pgdata:
+  repos:
