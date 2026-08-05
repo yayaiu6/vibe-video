@@ -9,7 +9,18 @@ function initApp() {
   setupPresets();
   setupConversationList();
   setupSettingsBindings();
+  setupFileUpload();
   autoResizeTextarea();
+  checkBackend();
+}
+
+async function checkBackend() {
+  const ok = await Api.healthCheck();
+  const badge = document.getElementById('backendStatus');
+  if (badge) {
+    badge.textContent = ok ? 'Connected' : 'Offline';
+    badge.style.color = ok ? 'var(--success)' : 'var(--error)';
+  }
 }
 
 function setupPromptDock() {
@@ -18,7 +29,6 @@ function setupPromptDock() {
   if (!input || !btn) return;
 
   btn.addEventListener('click', () => handleGenerate());
-
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -26,6 +36,42 @@ function setupPromptDock() {
     }
   });
 }
+
+function setupFileUpload() {
+  document.querySelectorAll('.prompt-attachments button').forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = i === 0 ? 'image/*' : i === 1 ? 'video/*' : '*';
+      input.multiple = true;
+      input.onchange = () => {
+        const files = Array.from(input.files);
+        if (!files.length) return;
+        if (!AppStore.pendingFiles) AppStore.pendingFiles = [];
+        AppStore.pendingFiles.push(...files);
+        showAttachedFiles();
+      };
+      input.click();
+    });
+  });
+}
+
+function showAttachedFiles() {
+  const container = document.querySelector('.prompt-attachments');
+  if (!container) return;
+  container.querySelectorAll('.attached-file').forEach(e => e.remove());
+  (AppStore.pendingFiles || []).forEach((f, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'attached-file';
+    tag.innerHTML = `${f.name} <button onclick="removeFile(${i})">&times;</button>`;
+    container.appendChild(tag);
+  });
+}
+
+window.removeFile = function(idx) {
+  AppStore.pendingFiles.splice(idx, 1);
+  showAttachedFiles();
+};
 
 function setupQuickPrompts() {
   document.querySelectorAll('.quick-prompt').forEach(btn => {
@@ -84,7 +130,7 @@ function autoResize(el) {
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
 }
 
-function handleGenerate() {
+async function handleGenerate() {
   const input = document.getElementById('promptInput');
   const prompt = input.value.trim();
   if (!prompt || AppStore.isGenerating) return;
@@ -93,10 +139,115 @@ function handleGenerate() {
   renderMessages();
   input.value = '';
   autoResize(input);
-
   hideWelcome();
+
+  const files = AppStore.pendingFiles || [];
+  AppStore.pendingFiles = [];
+  showAttachedFiles();
+
   showPipeline();
-  simulateGeneration(prompt);
+
+  let fullResponse = '';
+  let runId = null;
+
+  Api.streamTeam(prompt, {
+    sessionId: AppStore.activeConversation?.sessionId || null,
+    userId: 'frontend-user',
+    files,
+    onEvent(type, data) {
+      updatePipelineStage(type, data);
+
+      if (data && data.content) {
+        fullResponse += data.content;
+        updateStreamingMessage(fullResponse);
+      }
+      if (data && data.run_id) runId = data.run_id;
+      if (data && data.session_id && AppStore.activeConversation) {
+        AppStore.activeConversation.session_id = data.session_id;
+      }
+    },
+    onDone(type, data) {
+      hidePipeline();
+      AppStore.isGenerating = false;
+
+      if (type === 'RunError') {
+        const errMsg = data?.content || data?.error || 'Generation failed';
+        addAiMessage('Error: ' + errMsg);
+        return;
+      }
+
+      if (fullResponse) {
+        finalizeMessage(fullResponse);
+        extractVideoFromResponse(fullResponse);
+      } else {
+        addAiMessage('Generation completed but no response content received.');
+      }
+    },
+    onError(err) {
+      hidePipeline();
+      AppStore.isGenerating = false;
+      addAiMessage('Connection error: ' + err.message + '. Make sure the backend is running.');
+    },
+  });
+}
+
+function addAiMessage(text) {
+  AppStore.addMessage('ai', text);
+  renderMessages();
+}
+
+function updateStreamingMessage(text) {
+  const area = document.getElementById('chatArea');
+  if (!area) return;
+
+  let streamMsg = document.getElementById('streaming-msg');
+  if (!streamMsg) {
+    streamMsg = document.createElement('div');
+    streamMsg.id = 'streaming-msg';
+    streamMsg.className = 'chat-msg ai';
+    streamMsg.innerHTML = `
+      <div class="msg-avatar ai"><i data-lucide="sparkles" class="icon-sm"></i></div>
+      <div class="msg-bubble ai"></div>
+    `;
+    area.appendChild(streamMsg);
+    lucide.createIcons();
+  }
+
+  streamMsg.querySelector('.msg-bubble').innerHTML = formatMarkdown(text);
+  area.scrollTop = area.scrollHeight;
+}
+
+function finalizeMessage(text) {
+  const streamMsg = document.getElementById('streaming-msg');
+  if (streamMsg) streamMsg.remove();
+
+  AppStore.addMessage('ai', text);
+  renderMessages();
+}
+
+function extractVideoFromResponse(text) {
+  const videoMatch = text.match(/(?:\/renders\/|\.\/renders\/)[^\s)"]+\.mp4/i);
+  if (videoMatch) {
+    const videoPath = videoMatch[0];
+    showVideoResult(videoPath);
+  }
+}
+
+function showVideoResult(videoPath) {
+  const placeholder = document.getElementById('videoPlaceholder');
+  const controls = document.getElementById('videoControls');
+  if (!placeholder) return;
+
+  const filename = videoPath.split('/').pop();
+  const downloadUrl = Api.baseUrl + '/renders/' + filename;
+
+  placeholder.innerHTML = `
+    <video controls style="width:100%;height:100%;object-fit:contain;border-radius:var(--radius-md)">
+      <source src="${downloadUrl}" type="video/mp4">
+      Your browser does not support video.
+    </video>
+  `;
+  if (controls) controls.style.display = 'flex';
 }
 
 function renderMessages() {
@@ -108,11 +259,18 @@ function renderMessages() {
       <div class="msg-avatar ${msg.role}">
         <i data-lucide="${msg.role === 'user' ? 'user' : 'sparkles'}" class="icon-sm"></i>
       </div>
-      <div class="msg-bubble ${msg.role}">${escapeHtml(msg.content)}</div>
+      <div class="msg-bubble ${msg.role}">${formatMarkdown(msg.content)}</div>
     </div>
   `).join('');
   lucide.createIcons();
   area.scrollTop = area.scrollHeight;
+}
+
+function formatMarkdown(text) {
+  return text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/\n/g, '<br>');
 }
 
 function hideWelcome() {
@@ -125,7 +283,6 @@ function showPipeline() {
   const overlay = document.getElementById('pipelineOverlay');
   if (overlay) overlay.style.display = 'flex';
   resetPipeline();
-  animatePipeline();
 }
 
 function resetPipeline() {
@@ -136,64 +293,48 @@ function resetPipeline() {
   if (status) status.textContent = 'Initializing...';
 }
 
-function animatePipeline() {
-  const stages = ['parse', 'style', 'script', 'frames', 'animate', 'render', 'done'];
-  const labels = ['Parsing prompt...', 'Applying style...', 'Generating script...', 'Creating frames...', 'Animating...', 'Rendering MP4...', 'Complete!'];
-  let i = 0;
+function updatePipelineStage(type, data) {
+  const stageMap = {
+    'RunStarted': 0,
+    'TeamRunStarted': 0,
+    'AgentRunStarted': 1,
+    'ToolCallStarted': 2,
+    'ToolCallCompleted': 3,
+    'Thinking': 1,
+    'Content': 4,
+    'RunCompleted': 6,
+    'TeamRunCompleted': 6,
+  };
 
-  const interval = setInterval(() => {
-    if (i >= stages.length) {
-      clearInterval(interval);
-      setTimeout(() => completeGeneration(), 500);
-      return;
-    }
+  const idx = stageMap[type] ?? -1;
+  if (idx < 0) return;
 
-    if (i > 0) {
-      const prev = document.querySelector(`.p-step[data-stage="${stages[i-1]}"]`);
-      if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
-    }
+  const stages = document.querySelectorAll('.p-step');
+  stages.forEach((s, i) => {
+    s.classList.remove('active', 'done');
+    if (i < idx) s.classList.add('done');
+    else if (i === idx) s.classList.add('active');
+  });
 
-    const curr = document.querySelector(`.p-step[data-stage="${stages[i]}"]`);
-    if (curr) curr.classList.add('active');
+  const bar = document.getElementById('pipelineBar');
+  if (bar) bar.style.width = ((idx + 1) / 7 * 100) + '%';
 
-    const bar = document.getElementById('pipelineBar');
-    if (bar) bar.style.width = ((i + 1) / stages.length * 100) + '%';
-
-    const status = document.getElementById('pipelineStatus');
-    if (status) status.textContent = labels[i];
-
-    i++;
-  }, 800);
+  const status = document.getElementById('pipelineStatus');
+  const labels = {
+    'RunStarted': 'Starting team...',
+    'TeamRunStarted': 'Team coordinating...',
+    'AgentRunStarted': 'Agent working...',
+    'ToolCallStarted': 'Using tools...',
+    'ToolCallCompleted': 'Tool complete',
+    'Thinking': 'Thinking...',
+    'Content': 'Generating response...',
+    'RunCompleted': 'Complete!',
+    'TeamRunCompleted': 'Complete!',
+  };
+  if (status) status.textContent = labels[type] || type;
 }
 
-async function completeGeneration() {
+function hidePipeline() {
   const overlay = document.getElementById('pipelineOverlay');
   if (overlay) overlay.style.display = 'none';
-  AppStore.isGenerating = false;
-
-  AppStore.addMessage('ai', 'Here\'s your generated video! You can download it, share the link, or edit the prompt to regenerate.');
-  renderMessages();
-
-  const placeholder = document.getElementById('videoPlaceholder');
-  const controls = document.getElementById('videoControls');
-  if (placeholder) placeholder.innerHTML = '<div style="text-align:center;color:var(--text-muted)"><i data-lucide="check-circle" style="width:48px;height:48px;margin-bottom:8px;color:var(--success)"></i><p>Video generated successfully!</p></div>';
-  if (controls) controls.style.display = 'flex';
-  lucide.createIcons();
-}
-
-function escapeHtml(str) {
-  const d = document.createElement('div');
-  d.textContent = str;
-  return d.innerHTML;
-}
-
-async function simulateGeneration(prompt) {
-  try {
-    await Api.healthCheck();
-    AppStore.addMessage('ai', `I'll create a video based on your prompt: "${prompt}". Processing through the generation pipeline now...`);
-    renderMessages();
-  } catch {
-    AppStore.addMessage('ai', 'Backend not connected. This is a frontend demo — the video will appear after generation completes.');
-    renderMessages();
-  }
 }
