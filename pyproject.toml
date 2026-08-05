@@ -10,7 +10,7 @@ authors = [{ name = "Agno", email = "hello@agno.com" }]
 dependencies = [
     "agno[os]",
     "aiohttp",
-    "anthropic",
+    "google-genai",
     "parallel-web",
     "pgvector",
     "psycopg[binary]",

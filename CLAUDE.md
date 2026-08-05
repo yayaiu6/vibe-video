@@ -23,7 +23,7 @@ derives from it — keep the two in sync.
 
 ## Team Structure
 ```
-Vibe Video (Team, Coordinate, claude-opus-4-7)
+Vibe Video (Team, Coordinate, gemini-3.5-flash-lite)
 ├── Animator   — writes Hyperframes HTML, renders to MP4, iterates
 ├── CodeExplorer   — clones arbitrary repos on demand, read-only
 ├── Researcher — web search via Parallel (optional; gated on PARALLEL_API_KEY)
@@ -97,7 +97,7 @@ Connect via the AgentOS web UI at `http://localhost:8000` or the CLI
 
 1. Clone repo.
 2. Configure `.env`:
-   - `ANTHROPIC_API_KEY` (required)
+   - `GOOGLE_API_KEY` (required)
    - `PARALLEL_API_KEY` (optional; enables Researcher)
    - `GITHUB_ACCESS_TOKEN` (optional; enables private repo clone)
 3. `docker compose up -d --build` (builds the image — first build takes
@@ -127,7 +127,7 @@ python -m vibe_video                # CLI mode
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `ANTHROPIC_API_KEY` | Yes | Anthropic API key (leader + all agents) |
+| `GOOGLE_API_KEY` | Yes | Google API key (leader + all agents) |
 | `DB_*` | No | Postgres config (defaults to localhost) |
 | `PARALLEL_API_KEY` | No | Enables Researcher — web search via Parallel |
 | `GITHUB_ACCESS_TOKEN` | No | Enables CodeExplorer to clone private repos |

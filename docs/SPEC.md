@@ -48,7 +48,7 @@ VibeVideo (Team, Coordinate)
 └── Animator     (writes Hyperframes HTML, renders to MP4, iterates on failure)
 ```
 
-- **Leader model**: Anthropic `claude-opus-4-7` via `agno.models.anthropic.Claude`.
+- **Leader model**: Google `gemini-3.5-flash-lite` via `agno.models.google.Gemini`.
 - **Mode**: `TeamMode.coordinate` — leader delegates once per turn and
   synthesizes.
 - **Leader tools**: none in v0 (no Slack, no direct render). Leader is
@@ -136,7 +136,7 @@ The specialist. Owns Hyperframes authoring end-to-end.
      with a clear explanation.
   7. Return the rendered `Video` plus a one-paragraph summary of what
      was produced.
-- **Model**: same `claude-opus-4-7` as the rest of the team.
+- **Model**: same `gemini-3.5-flash-lite` as the rest of the team.
 
 ---
 
@@ -244,7 +244,7 @@ external assets, no moving parts.
 
 | Variable | Purpose |
 |---|---|
-| `ANTHROPIC_API_KEY` | Leader + all agents. |
+| `GOOGLE_API_KEY` | Leader + all agents. |
 | `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASS`, `DB_DATABASE` | PostgreSQL + pgvector for session history and memory. |
 
 ### Optional

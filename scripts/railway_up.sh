@@ -10,7 +10,7 @@
 #    Prerequisites:
 #      - Railway CLI installed
 #      - Logged in via `railway login`
-#      - ANTHROPIC_API_KEY set in environment
+#      - GOOGLE_API_KEY set in environment
 #
 ############################################################################
 
@@ -48,8 +48,8 @@ if ! command -v railway &> /dev/null; then
     exit 1
 fi
 
-if [[ -z "$ANTHROPIC_API_KEY" ]]; then
-    echo "ANTHROPIC_API_KEY not set. Add to .env or export it."
+if [[ -z "$GOOGLE_API_KEY" ]]; then
+    echo "GOOGLE_API_KEY not set. Add to .env or export it."
     exit 1
 fi
 
@@ -89,7 +89,7 @@ railway add -s vibe-video \
     -v "WAIT_FOR_DB=True" \
     -v "REPOS_DIR=/repos" \
     -v "RENDERS_DIR=/renders" \
-    -v "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" \
+    -v "GOOGLE_API_KEY=${GOOGLE_API_KEY}" \
     -v "GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-}" \
     -v "PARALLEL_API_KEY=${PARALLEL_API_KEY:-}" \
     -v "MAX_RENDER_RETRIES=${MAX_RENDER_RETRIES:-3}" \

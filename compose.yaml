@@ -47,7 +47,7 @@ services:
       - DB_DATABASE=${DB_DATABASE:-ai}
       - WAIT_FOR_DB=True
       # API keys
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - GITHUB_ACCESS_TOKEN=${GITHUB_ACCESS_TOKEN:-}
       # Web research (optional)
       - PARALLEL_API_KEY=${PARALLEL_API_KEY:-}

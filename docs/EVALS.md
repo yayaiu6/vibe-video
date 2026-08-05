@@ -94,7 +94,7 @@ cases into categories — one flat list is enough.
 
 ## Cost awareness
 
-Each `run` invocation is a full team run, which means Anthropic API
+Each `run` invocation is a full team run, which means Google API
 spend. A case like `dijkstra` does a render (tens of tokens to minutes
 of model time). The autonomous loop multiplies this by attempts × cases.
 

@@ -47,7 +47,7 @@ cp example.env .env
 ```
 
 Edit `.env`:
-- `ANTHROPIC_API_KEY` — required (we use `claude-opus-4-7`)
+- `GOOGLE_API_KEY` — required (we use `gemini-3.5-flash-lite`)
 - `PARALLEL_API_KEY` — optional, enables web research
 - `GITHUB_ACCESS_TOKEN` — optional, enables cloning private repos
 

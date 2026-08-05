@@ -8,7 +8,7 @@ so every agent pulls from the same sources.
 from os import getenv
 from pathlib import Path
 
-from agno.models.anthropic import Claude
+from agno.models.google import Gemini
 
 from db import get_postgres_db
 
@@ -20,39 +20,22 @@ agent_db = get_postgres_db()
 # ---------------------------------------------------------------------------
 # Model
 # ---------------------------------------------------------------------------
-# Anthropic Claude Opus 4.7 — strong reasoning, great for multi-step
-# planning and Hyperframes HTML authoring.
+# Google Gemini 3.5 Flash Lite — fast, cost-effective, good for
+# multi-step planning and Hyperframes HTML authoring.
 #
-# Prompt caching on the system block: leader and Animator each have
-# large, stable system prompts (~6k and ~8k tokens respectively) that
-# get re-read on every tool-call turn. With `cache_system_prompt=True`
-# agno adds `cache_control: ephemeral` to the system block, so every
-# turn after the first in a 5-minute window reads the prompt from
-# Anthropic's cache at ~10% cost and much lower latency.
-MODEL = Claude(id="claude-opus-4-7", cache_system_prompt=True)
+# Gemini models use GOOGLE_API_KEY for authentication. The agno Gemini
+# adapter handles connection pooling and retry logic automatically.
+MODEL = Gemini(id="gemini-3.5-flash-lite")
 
 # Animator writes whole HTML compositions inside `save_file` tool calls,
 # so its output is several thousand tokens of HTML + CSS + GSAP.
 #
-# Extended thinking is DISABLED here. Empirically, even with
-# `thinking={"type": "adaptive"}` + `output_config={"effort": "medium"}`,
-# Opus 4.7 burns the entire output budget on thinking before emitting a
-# single tool call (observed: output=16000, time_to_first_token = full
-# duration, zero tool calls). Disabling thinking routes the full budget
-# to actual output — the HTML and tool calls we need.
-#
 # max_tokens is set high so one `save_file` call can carry a full
 # composition (HTML + inline CSS + GSAP is ~6-10k tokens for a busy
 # animation).
-#
-# cache_system_prompt=True: Animator iterates (lint → patch → lint →
-# render → patch → render), typically 6-10 turns per run. The ~8k-token
-# system prompt (base instructions + inlined Hyperframes skill) gets
-# cached on turn 1 and re-used cheaply for the rest of the run.
-ANIMATOR_MODEL = Claude(
-    id="claude-opus-4-7",
-    max_tokens=32000,
-    cache_system_prompt=True,
+ANIMATOR_MODEL = Gemini(
+    id="gemini-3.5-flash-lite",
+    max_output_tokens=32000,
 )
 
 # ---------------------------------------------------------------------------
