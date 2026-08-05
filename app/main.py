@@ -11,6 +11,10 @@ Run:
 from os import getenv
 from pathlib import Path
 
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from agno.os import AgentOS
 
 from db import get_postgres_db
@@ -25,16 +29,14 @@ from vibe_video.team import vibe_video
 runtime_env = getenv("RUNTIME_ENV", "prd")
 scheduler_base_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 
+FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
 # ---------------------------------------------------------------------------
 # Create AgentOS
 # ---------------------------------------------------------------------------
 agent_os = AgentOS(
     name="Vibe Video",
     tracing=True,
-    # Vibe Video has no scheduled jobs of its own, but enabling the
-    # scheduler surfaces AgentOS's scheduling UI so users can set up
-    # their own recurring runs (e.g. a weekly "render last week's
-    # commits" job).
     scheduler=True,
     scheduler_base_url=scheduler_base_url,
     db=get_postgres_db(),
@@ -45,6 +47,30 @@ agent_os = AgentOS(
 )
 
 app = agent_os.get_app()
+
+# ---------------------------------------------------------------------------
+# Mount frontend static files
+# ---------------------------------------------------------------------------
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="assets")
+    app.mount("/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="css")
+    app.mount("/js", StaticFiles(directory=str(FRONTEND_DIR / "js")), name="js")
+
+    @app.get("/", include_in_schema=False)
+    async def serve_index():
+        return FileResponse(str(FRONTEND_DIR / "index.html"))
+
+    @app.get("/create.html", include_in_schema=False)
+    async def serve_create():
+        return FileResponse(str(FRONTEND_DIR / "create.html"))
+
+    @app.get("/history.html", include_in_schema=False)
+    async def serve_history():
+        return FileResponse(str(FRONTEND_DIR / "history.html"))
+
+    @app.get("/settings.html", include_in_schema=False)
+    async def serve_settings():
+        return FileResponse(str(FRONTEND_DIR / "settings.html"))
 
 
 if __name__ == "__main__":
