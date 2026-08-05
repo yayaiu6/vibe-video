@@ -51,11 +51,18 @@ app = agent_os.get_app()
 # ---------------------------------------------------------------------------
 # Mount frontend static files
 # ---------------------------------------------------------------------------
-if FRONTEND_DIR.exists():
-    app.mount("/assets", StaticFiles(directory=str(FRONTEND_DIR / "assets")), name="assets")
-    app.mount("/css", StaticFiles(directory=str(FRONTEND_DIR / "css")), name="css")
-    app.mount("/js", StaticFiles(directory=str(FRONTEND_DIR / "js")), name="js")
+_css = FRONTEND_DIR / "css"
+_js = FRONTEND_DIR / "js"
+_assets = FRONTEND_DIR / "assets"
 
+if _css.is_dir():
+    app.mount("/css", StaticFiles(directory=str(_css)), name="css")
+if _js.is_dir():
+    app.mount("/js", StaticFiles(directory=str(_js)), name="js")
+if _assets.is_dir():
+    app.mount("/assets", StaticFiles(directory=str(_assets)), name="assets")
+
+if FRONTEND_DIR.is_dir():
     @app.get("/", include_in_schema=False)
     async def serve_index():
         return FileResponse(str(FRONTEND_DIR / "index.html"))
