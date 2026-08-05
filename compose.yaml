@@ -35,6 +35,7 @@ services:
       - repos:/repos
       # Render outputs — bind-mounted so MP4s are visible in ./renders locally
       - ./renders:/renders
+      - ./renders:/app/renders
     environment:
       - RUNTIME_ENV=dev
       - AGNO_DEBUG=True
