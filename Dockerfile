@@ -6,7 +6,7 @@ FROM agnohq/python:3.12
 
 # Pinned by default for reproducible builds; override at build time with
 #   docker build --build-arg HYPERFRAMES_VERSION=x.y.z ...
-ARG HYPERFRAMES_VERSION=0.3.2
+ARG HYPERFRAMES_VERSION=0.7.94
 
 # ---------------------------------------------------------------------------
 # Puppeteer: use the system Chromium rather than the ~170 MB download.
