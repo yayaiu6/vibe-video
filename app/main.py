@@ -31,6 +31,7 @@ runtime_env = getenv("RUNTIME_ENV", "prd")
 scheduler_base_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+RENDERS_DIR = Path(getenv("RENDERS_DIR", "/app/renders"))
 
 # Pre-compute which frontend pages exist so we don't hit disk on every request.
 _FRONTEND_PAGES: dict[str, Path] = {}
@@ -65,6 +66,13 @@ app = agent_os.get_app()
 class FrontendMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
+
+        # --- Rendered videos: /renders/* ---
+        if path.startswith("/renders/"):
+            rel = path[len("/renders/"):]
+            file_path = RENDERS_DIR / rel
+            if file_path.is_file():
+                return FileResponse(str(file_path), media_type="video/mp4")
 
         # --- Static files: /css/*, /js/*, /assets/* ---
         if path.startswith(("/css/", "/js/", "/assets/")):
