@@ -32,6 +32,8 @@ scheduler_base_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 RENDERS_DIR = Path(getenv("RENDERS_DIR", "/app/renders"))
+# Also check /app/renders as the Animator agent writes there
+RENDERS_DIR_ALT = Path("/app/renders")
 
 # Pre-compute which frontend pages exist so we don't hit disk on every request.
 _FRONTEND_PAGES: dict[str, Path] = {}
@@ -70,9 +72,11 @@ class FrontendMiddleware(BaseHTTPMiddleware):
         # --- Rendered videos: /renders/* ---
         if path.startswith("/renders/"):
             rel = path[len("/renders/"):]
-            file_path = RENDERS_DIR / rel
-            if file_path.is_file():
-                return FileResponse(str(file_path), media_type="video/mp4")
+            # Check both RENDERS_DIR and /app/renders (Animator writes there)
+            for render_dir in (RENDERS_DIR, RENDERS_DIR_ALT):
+                file_path = render_dir / rel
+                if file_path.is_file():
+                    return FileResponse(str(file_path), media_type="video/mp4")
 
         # --- Static files: /css/*, /js/*, /assets/* ---
         if path.startswith(("/css/", "/js/", "/assets/")):
