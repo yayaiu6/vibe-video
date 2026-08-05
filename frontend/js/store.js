@@ -1,6 +1,7 @@
 const AppStore = {
   conversations: [],
   activeConversation: null,
+  pendingFiles: [],
   settings: {
     model: 'gemini-3.5-flash-lite',
     duration: 5,
