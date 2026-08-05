@@ -40,11 +40,32 @@ const Api = {
   streamTeam(prompt, { sessionId, userId, files, onEvent, onDone, onError } = {}) {
     const controller = new AbortController();
 
-    this.runTeam(prompt, { sessionId, userId, files, stream: true })
+    fetch(`${this.baseUrl}/teams/vibe_video/runs`, {
+      method: 'POST',
+      headers: { 'Accept': 'text/event-stream' },
+      body: (() => {
+        const fd = new FormData();
+        fd.append('message', prompt);
+        fd.append('stream', 'true');
+        fd.append('monitor', 'true');
+        if (sessionId) fd.append('session_id', sessionId);
+        if (userId) fd.append('user_id', userId);
+        if (files && files.length) files.forEach(f => fd.append('files', f));
+        return fd;
+      })(),
+      signal: controller.signal,
+    })
       .then(async res => {
+        if (!res.ok) {
+          const errText = await res.text();
+          onError?.(new Error(`API ${res.status}: ${errText}`));
+          return;
+        }
+
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let eventType = null;
 
         while (true) {
           const { done, value } = await reader.read();
@@ -52,27 +73,31 @@ const Api = {
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
-          buffer = lines.pop();
+          buffer = lines.pop() || '';
 
           for (const line of lines) {
             if (line.startsWith('event: ')) {
-              var eventType = line.slice(7).trim();
+              eventType = line.slice(7).trim();
             } else if (line.startsWith('data: ') && eventType) {
               try {
                 const data = JSON.parse(line.slice(6));
                 onEvent?.(eventType, data);
-                if (eventType === 'RunCompleted' || eventType === 'RunError') {
+                if (eventType === 'TeamRunCompleted' || eventType === 'TeamRunError') {
                   onDone?.(eventType, data);
                   return;
                 }
-              } catch {}
+              } catch (e) {}
+              eventType = null;
+            } else if (line === '') {
               eventType = null;
             }
           }
         }
         onDone?.('StreamEnd', null);
       })
-      .catch(err => onError?.(err));
+      .catch(err => {
+        if (err.name !== 'AbortError') onError?.(err);
+      });
 
     return { abort: () => controller.abort() };
   },

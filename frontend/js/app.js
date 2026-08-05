@@ -150,27 +150,36 @@ async function handleGenerate() {
   let fullResponse = '';
   let runId = null;
 
-  Api.streamTeam(prompt, {
+  AppStore._stream = Api.streamTeam(prompt, {
     sessionId: AppStore.activeConversation?.sessionId || null,
     userId: 'frontend-user',
     files,
     onEvent(type, data) {
       updatePipelineStage(type, data);
 
-      if (data && data.content) {
+      if (data?.content) {
         fullResponse += data.content;
         updateStreamingMessage(fullResponse);
       }
-      if (data && data.run_id) runId = data.run_id;
-      if (data && data.session_id && AppStore.activeConversation) {
-        AppStore.activeConversation.session_id = data.session_id;
+      if (data?.run_id) runId = data.run_id;
+      if (data?.session_id) {
+        if (!AppStore.activeConversation) {
+          AppStore.addConversation({ id: Date.now(), title: prompt.slice(0, 40), messages: [], sessionId: data.session_id });
+        } else {
+          AppStore.activeConversation.sessionId = data.session_id;
+        }
+      }
+      if (data?.content && type === 'TeamRunContent') {
+        const status = document.getElementById('pipelineStatus');
+        if (status) status.textContent = 'AI is generating...';
       }
     },
     onDone(type, data) {
       hidePipeline();
       AppStore.isGenerating = false;
+      AppStore._stream = null;
 
-      if (type === 'RunError') {
+      if (type === 'TeamRunError' || type === 'RunError') {
         const errMsg = data?.content || data?.error || 'Generation failed';
         addAiMessage('Error: ' + errMsg);
         return;
@@ -186,7 +195,8 @@ async function handleGenerate() {
     onError(err) {
       hidePipeline();
       AppStore.isGenerating = false;
-      addAiMessage('Connection error: ' + err.message + '. Make sure the backend is running.');
+      AppStore._stream = null;
+      addAiMessage('Connection error: ' + err.message);
     },
   });
 }
@@ -338,3 +348,13 @@ function hidePipeline() {
   const overlay = document.getElementById('pipelineOverlay');
   if (overlay) overlay.style.display = 'none';
 }
+
+window.cancelGeneration = function() {
+  if (AppStore._stream) {
+    AppStore._stream.abort();
+    AppStore._stream = null;
+  }
+  AppStore.isGenerating = false;
+  hidePipeline();
+  addAiMessage('Generation cancelled.');
+};
