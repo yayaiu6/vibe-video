@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create — Vibe Video</title>
+  <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/workspace.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="workspace-body">
+  <nav class="ws-nav">
+    <div class="ws-nav-left">
+      <a href="/" class="nav-brand"><i data-lucide="film" class="icon"></i> <span>Vibe Video</span></a>
+    </div>
+    <div class="ws-nav-center">
+      <a href="/create.html" class="ws-tab active"><i data-lucide="plus" class="icon-sm"></i> Create</a>
+      <a href="/history.html" class="ws-tab"><i data-lucide="clock" class="icon-sm"></i> History</a>
+      <a href="/settings.html" class="ws-tab"><i data-lucide="settings" class="icon-sm"></i> Settings</a>
+    </div>
+    <div class="ws-nav-right">
+      <button class="btn btn-ghost btn-icon" title="Help"><i data-lucide="help-circle" class="icon"></i></button>
+    </div>
+  </nav>
+
+  <div class="workspace">
+    <!-- LEFT PANEL: Conversations -->
+    <aside class="panel-left">
+      <div class="panel-header">
+        <button class="btn btn-primary" style="width:100%"><i data-lucide="plus" class="icon-sm"></i> New Video</button>
+      </div>
+      <div class="panel-search">
+        <i data-lucide="search" class="icon-sm search-icon"></i>
+        <input type="text" placeholder="Search conversations..." class="search-input">
+      </div>
+      <div class="conv-list">
+        <div class="conv-group-label">Today</div>
+        <div class="conv-item active">
+          <i data-lucide="film" class="icon-sm"></i>
+          <div class="conv-info">
+            <div class="conv-title">Autumn leaves dog</div>
+            <div class="conv-time">2 min ago</div>
+          </div>
+        </div>
+        <div class="conv-item">
+          <i data-lucide="film" class="icon-sm"></i>
+          <div class="conv-info">
+            <div class="conv-title">Neon city timelapse</div>
+            <div class="conv-time">1 hour ago</div>
+          </div>
+        </div>
+        <div class="conv-group-label">Yesterday</div>
+        <div class="conv-item">
+          <i data-lucide="film" class="icon-sm"></i>
+          <div class="conv-info">
+            <div class="conv-title">Abstract particles</div>
+            <div class="conv-time">Yesterday</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER PANEL: Video Hero + Chat + Prompt Dock -->
+    <main class="panel-center">
+      <!-- Video Preview Hero -->
+      <div class="video-hero" id="videoHero">
+        <div class="video-placeholder" id="videoPlaceholder">
+          <i data-lucide="film" class="icon-lg" style="width:48px;height:48px;color:var(--text-muted)"></i>
+          <p>Your video will appear here</p>
+        </div>
+        <div class="video-controls" id="videoControls" style="display:none">
+          <button class="btn btn-ghost btn-icon" title="Play"><i data-lucide="play" class="icon"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Download"><i data-lucide="download" class="icon"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Share"><i data-lucide="share-2" class="icon"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Edit"><i data-lucide="pencil" class="icon"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Regenerate"><i data-lucide="refresh-cw" class="icon"></i></button>
+        </div>
+      </div>
+
+      <!-- Chat Messages -->
+      <div class="chat-area" id="chatArea">
+        <div class="chat-welcome" id="chatWelcome">
+          <i data-lucide="sparkles" class="icon-lg" style="width:40px;height:40px;color:var(--accent)"></i>
+          <h3>What would you like to create?</h3>
+          <p>Describe your video and I'll bring it to life</p>
+          <div class="quick-prompts">
+            <button class="quick-prompt" data-prompt="A cinematic drone shot over a futuristic city at sunset"><i data-lucide="film" class="icon-sm"></i> Cinematic</button>
+            <button class="quick-prompt" data-prompt="Anime-style character walking through cherry blossoms"><i data-lucide="palette" class="icon-sm"></i> Anime</button>
+            <button class="quick-prompt" data-prompt="Slow motion nature documentary footage of ocean waves"><i data-lucide="video" class="icon-sm"></i> Documentary</button>
+            <button class="quick-prompt" data-prompt="Time-lapse of flowers blooming in a garden"><i data-lucide="tree-pine" class="icon-sm"></i> Nature</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prompt Dock (Fixed Bottom) -->
+      <div class="prompt-dock">
+        <div class="prompt-attachments">
+          <button class="btn btn-ghost btn-icon" title="Attach image"><i data-lucide="image" class="icon-sm"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Attach video"><i data-lucide="video" class="icon-sm"></i></button>
+          <button class="btn btn-ghost btn-icon" title="Reference"><i data-lucide="link" class="icon-sm"></i></button>
+        </div>
+        <div class="prompt-input-wrap">
+          <textarea id="promptInput" placeholder="Describe the video you want to create..." rows="1"></textarea>
+          <button class="btn btn-primary generate-btn" id="generateBtn" title="Generate video">
+            <i data-lucide="sparkles" class="icon-sm"></i> Generate
+          </button>
+        </div>
+        <div class="prompt-quick-settings">
+          <button class="qs-btn"><i data-lucide="clock" class="icon-sm"></i> 5s</button>
+          <button class="qs-btn"><i data-lucide="maximize" class="icon-sm"></i> 16:9</button>
+          <button class="qs-btn"><i data-lucide="monitor" class="icon-sm"></i> 720p</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- RIGHT PANEL: Settings -->
+    <aside class="panel-right">
+      <div class="settings-group">
+        <h4 class="settings-label">Generation Settings</h4>
+        <div class="setting-row">
+          <label>Model</label>
+          <select><option>Gemini Flash Lite</option></select>
+        </div>
+        <div class="setting-row">
+          <label>Duration</label>
+          <select><option>5 seconds</option><option>10 seconds</option></select>
+        </div>
+        <div class="setting-row">
+          <label>Resolution</label>
+          <select><option>720p</option><option>1080p</option></select>
+        </div>
+        <div class="setting-row">
+          <label>FPS</label>
+          <select><option>24</option><option>30</option></select>
+        </div>
+        <div class="setting-row">
+          <label>Aspect Ratio</label>
+          <select><option>16:9</option><option>9:16</option><option>1:1</option></select>
+        </div>
+      </div>
+      <div class="settings-group">
+        <h4 class="settings-label">Style Presets</h4>
+        <div class="preset-grid">
+          <button class="preset-chip active"><i data-lucide="film" class="icon-sm"></i> Cinematic</button>
+          <button class="preset-chip"><i data-lucide="palette" class="icon-sm"></i> Anime</button>
+          <button class="preset-chip"><i data-lucide="video" class="icon-sm"></i> Documentary</button>
+          <button class="preset-chip"><i data-lucide="tree-pine" class="icon-sm"></i> Nature</button>
+          <button class="preset-chip"><i data-lucide="shopping-bag" class="icon-sm"></i> Product Ads</button>
+          <button class="preset-chip"><i data-lucide="box" class="icon-sm"></i> Motion Graphics</button>
+        </div>
+      </div>
+      <div class="settings-group">
+        <h4 class="settings-label">Advanced</h4>
+        <div class="setting-row">
+          <label>Seed</label>
+          <input type="number" placeholder="Random" style="width:100%">
+        </div>
+        <div class="setting-check">
+          <input type="checkbox" id="strictMode">
+          <label for="strictMode">Strict prompt adherence</label>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Generation Pipeline Overlay -->
+  <div class="pipeline-overlay" id="pipelineOverlay" style="display:none">
+    <div class="pipeline-card">
+      <h4><i data-lucide="loader" class="icon"></i> Generating your video...</h4>
+      <div class="pipeline-steps">
+        <div class="p-step" data-stage="parse"><i data-lucide="file-text" class="icon-sm"></i> Parse prompt</div>
+        <div class="p-step" data-stage="style"><i data-lucide="palette" class="icon-sm"></i> Apply style</div>
+        <div class="p-step" data-stage="script"><i data-lucide="code" class="icon-sm"></i> Generate script</div>
+        <div class="p-step" data-stage="frames"><i data-lucide="layers" class="icon-sm"></i> Create frames</div>
+        <div class="p-step" data-stage="animate"><i data-lucide="play-circle" class="icon-sm"></i> Animate</div>
+        <div class="p-step" data-stage="render"><i data-lucide="video" class="icon-sm"></i> Render MP4</div>
+        <div class="p-step" data-stage="done"><i data-lucide="check-circle" class="icon-sm"></i> Done</div>
+      </div>
+      <div class="pipeline-progress"><div class="pipeline-bar" id="pipelineBar"></div></div>
+      <div class="pipeline-status" id="pipelineStatus">Initializing...</div>
+    </div>
+  </div>
+
+  <script src="js/store.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
