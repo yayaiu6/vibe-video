@@ -149,6 +149,7 @@ async function handleGenerate() {
 
   let fullResponse = '';
   let runId = null;
+  let capturedVideos = [];
 
   AppStore._stream = Api.streamTeam(prompt, {
     sessionId: AppStore.activeConversation?.sessionId || null,
@@ -160,6 +161,13 @@ async function handleGenerate() {
       if (data?.content) {
         fullResponse += data.content;
         updateStreamingMessage(fullResponse);
+      }
+      if (data?.videos && data.videos.length) {
+        data.videos.forEach(v => {
+          if (v.content && v.mime_type) {
+            capturedVideos.push({ base64: v.content, mimeType: v.mime_type });
+          }
+        });
       }
       if (data?.run_id) runId = data.run_id;
       if (data?.session_id) {
@@ -187,9 +195,15 @@ async function handleGenerate() {
 
       if (fullResponse) {
         finalizeMessage(fullResponse);
-        extractVideoFromResponse(fullResponse);
       } else {
         addAiMessage('Generation completed but no response content received.');
+      }
+
+      if (capturedVideos.length) {
+        capturedVideos.forEach(v => showVideoFromBase64(v.base64, v.mimeType));
+        capturedVideos = [];
+      } else {
+        extractVideoFromResponse(fullResponse);
       }
     },
     onError(err) {
@@ -241,6 +255,23 @@ function extractVideoFromResponse(text) {
     const videoPath = videoMatch[0];
     showVideoResult(videoPath);
   }
+}
+
+function showVideoFromBase64(base64, mimeType) {
+  const placeholder = document.getElementById('videoPlaceholder');
+  const controls = document.getElementById('videoControls');
+  if (!placeholder) return;
+
+  const dataUrl = `data:${mimeType};base64,${base64}`;
+  AppStore._lastVideoDataUrl = dataUrl;
+
+  placeholder.innerHTML = `
+    <video controls style="width:100%;height:100%;object-fit:contain;border-radius:var(--radius-md)">
+      <source src="${dataUrl}" type="${mimeType}">
+      Your browser does not support video.
+    </video>
+  `;
+  if (controls) controls.style.display = 'flex';
 }
 
 function showVideoResult(videoPath) {
@@ -357,4 +388,18 @@ window.cancelGeneration = function() {
   AppStore.isGenerating = false;
   hidePipeline();
   addAiMessage('Generation cancelled.');
+};
+
+window.downloadVideo = function() {
+  const dataUrl = AppStore._lastVideoDataUrl;
+  if (!dataUrl) {
+    addAiMessage('No video to download.');
+    return;
+  }
+  const a = document.createElement('a');
+  a.href = dataUrl;
+  a.download = 'vibe-video.mp4';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 };

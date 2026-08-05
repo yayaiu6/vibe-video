@@ -16,7 +16,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
     CONTAINER=true \
     PRODUCER_FORCE_SCREENSHOT=true \
-    PRODUCER_MAX_WORKERS=1
+    PRODUCER_MAX_WORKERS=1 \
+    HYPERFRAMES_BROWSER_PATH=/usr/bin/chromium
 
 # ---------------------------------------------------------------------------
 # System dependencies
