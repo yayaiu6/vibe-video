@@ -8,12 +8,13 @@ Run:
     python -m app.main
 """
 
+import mimetypes
 from os import getenv
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from fastapi.staticfiles import StaticFiles
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import FileResponse, Response
 
 from agno.os import AgentOS
 
@@ -30,6 +31,14 @@ runtime_env = getenv("RUNTIME_ENV", "prd")
 scheduler_base_url = getenv("AGENTOS_URL", "http://127.0.0.1:8000")
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
+
+# Pre-compute which frontend pages exist so we don't hit disk on every request.
+_FRONTEND_PAGES: dict[str, Path] = {}
+if FRONTEND_DIR.is_dir():
+    for _name in ("index.html", "create.html", "history.html", "settings.html"):
+        _p = FRONTEND_DIR / _name
+        if _p.is_file():
+            _FRONTEND_PAGES["/" + _name if _name != "index.html" else "/"] = _p
 
 # ---------------------------------------------------------------------------
 # Create AgentOS
@@ -48,36 +57,31 @@ agent_os = AgentOS(
 
 app = agent_os.get_app()
 
+
 # ---------------------------------------------------------------------------
-# Mount frontend static files
+# Frontend middleware — intercepts requests *before* AgentOS routes.
+# Serves static CSS/JS/assets and HTML pages from the frontend/ directory.
 # ---------------------------------------------------------------------------
-_css = FRONTEND_DIR / "css"
-_js = FRONTEND_DIR / "js"
-_assets = FRONTEND_DIR / "assets"
+class FrontendMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        path = request.url.path
 
-if _css.is_dir():
-    app.mount("/css", StaticFiles(directory=str(_css)), name="css")
-if _js.is_dir():
-    app.mount("/js", StaticFiles(directory=str(_js)), name="js")
-if _assets.is_dir():
-    app.mount("/assets", StaticFiles(directory=str(_assets)), name="assets")
+        # --- Static files: /css/*, /js/*, /assets/* ---
+        if path.startswith(("/css/", "/js/", "/assets/")):
+            file_path = FRONTEND_DIR / path.lstrip("/")
+            if file_path.is_file():
+                media_type, _ = mimetypes.guess_type(file_path.name)
+                return FileResponse(str(file_path), media_type=media_type)
 
-if FRONTEND_DIR.is_dir():
-    @app.get("/", include_in_schema=False)
-    async def serve_index():
-        return FileResponse(str(FRONTEND_DIR / "index.html"))
+        # --- HTML pages: /, /create.html, /history.html, /settings.html ---
+        if path in _FRONTEND_PAGES:
+            return FileResponse(str(_FRONTEND_PAGES[path]))
 
-    @app.get("/create.html", include_in_schema=False)
-    async def serve_create():
-        return FileResponse(str(FRONTEND_DIR / "create.html"))
+        # --- Everything else falls through to AgentOS ---
+        return await call_next(request)
 
-    @app.get("/history.html", include_in_schema=False)
-    async def serve_history():
-        return FileResponse(str(FRONTEND_DIR / "history.html"))
 
-    @app.get("/settings.html", include_in_schema=False)
-    async def serve_settings():
-        return FileResponse(str(FRONTEND_DIR / "settings.html"))
+app.add_middleware(FrontendMiddleware)
 
 
 if __name__ == "__main__":
