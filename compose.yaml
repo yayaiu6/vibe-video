@@ -63,6 +63,7 @@ services:
       # available on every build; the tradeoff is somewhat slower
       # captures. envBool parser requires the literal string "true".
       - PRODUCER_FORCE_SCREENSHOT=true
+      - PRODUCER_MAX_WORKERS=1
     depends_on:
       - vibe-video-db
     networks:

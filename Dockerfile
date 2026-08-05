@@ -14,7 +14,9 @@ ARG HYPERFRAMES_VERSION=0.3.2
 # ---------------------------------------------------------------------------
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
     PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium \
-    CONTAINER=true
+    CONTAINER=true \
+    PRODUCER_FORCE_SCREENSHOT=true \
+    PRODUCER_MAX_WORKERS=1
 
 # ---------------------------------------------------------------------------
 # System dependencies
